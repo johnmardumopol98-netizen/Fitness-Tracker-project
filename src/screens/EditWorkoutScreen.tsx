@@ -1,0 +1,22 @@
+import React,{useState} from 'react';
+import {Alert,Button,Pressable,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from 'react-native';
+import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {RootStackParamList} from '../navigation/AppNavigator';
+import {useWorkouts} from '../context/WorkoutContext';
+import {Difficulty} from '../types/Workout';
+
+type Props=NativeStackScreenProps<RootStackParamList,'EditWorkout'>;
+
+export default function EditWorkoutScreen({route,navigation}:Props){
+ const {getWorkout,updateWorkout}=useWorkouts(); const workout=getWorkout(route.params.workoutId);
+ const [name,setName]=useState(workout?.name??''),[category,setCategory]=useState(workout?.category??''),[duration,setDuration]=useState(workout?.duration.toString()??''),[calories,setCalories]=useState(workout?.calories.toString()??''),[description,setDescription]=useState(workout?.description??''),[difficulty,setDifficulty]=useState<Difficulty>(workout?.difficulty??'Beginner'); const [errors,setErrors]=useState<Record<string,string>>({});
+ if(!workout)return <SafeAreaView style={styles.container}><Text style={styles.notFound}>Workout not found.</Text></SafeAreaView>;
+ const validate=()=>{const e:Record<string,string>={};if(!name.trim()||name.trim().length<3)e.name='Enter at least 3 characters.';if(!category.trim())e.category='Category is required.';if(!duration.trim()||isNaN(Number(duration))||Number(duration)<=0)e.duration='Enter a valid duration.';if(!calories.trim()||isNaN(Number(calories))||Number(calories)<=0)e.calories='Enter valid calories.';if(!description.trim())e.description='Description is required.';setErrors(e);return !Object.keys(e).length};
+ const save=()=>{if(!validate()){Alert.alert('Validation Error','Please fix the errors before saving.');return}updateWorkout({...workout,name:name.trim(),category:category.trim(),duration:Number(duration),calories:Number(calories),difficulty,description:description.trim()});Alert.alert('Success','Workout updated successfully.',[{text:'OK',onPress:()=>navigation.navigate('WorkoutDetails',{workoutId:workout.id})}])};
+ const field=(label:string,value:string,setter:(s:string)=>void,key:string,numeric=false)=><><Text style={styles.label}>{label} *</Text><TextInput style={[styles.input,errors[key]&&styles.errorInput]} value={value} onChangeText={setter} keyboardType={numeric?'numeric':'default'}/>{errors[key]&&<Text style={styles.error}>{errors[key]}</Text>}</>;
+ return <SafeAreaView style={styles.container}><ScrollView contentContainerStyle={styles.content}><Text style={styles.heading}>Edit Workout</Text>{field('Workout Name',name,setName,'name')}{field('Category',category,setCategory,'category')}{field('Duration',duration,setDuration,'duration',true)}{field('Calories',calories,setCalories,'calories',true)}
+ <Text style={styles.label}>Difficulty</Text><View style={styles.difficultyRow}>{(['Beginner','Intermediate','Advanced'] as Difficulty[]).map(x=><Pressable key={x} style={[styles.difficultyButton,difficulty===x&&styles.selected]} onPress={()=>setDifficulty(x)}><Text style={difficulty===x?styles.selectedText:styles.difficultyText}>{x}</Text></Pressable>)}</View>
+ <Text style={styles.label}>Description *</Text><TextInput style={[styles.textArea,errors.description&&styles.errorInput]} value={description} onChangeText={setDescription} multiline/>{errors.description&&<Text style={styles.error}>{errors.description}</Text>}
+ <View style={styles.button}><Button title="Save Changes" onPress={save}/></View><View style={styles.button}><Button title="Cancel" color="#64748B" onPress={()=>navigation.goBack()}/></View></ScrollView></SafeAreaView>
+}
+const styles=StyleSheet.create({container:{flex:1,backgroundColor:'#F8FAFC'},content:{padding:20},heading:{fontSize:26,fontWeight:'bold',color:'#14532D'},label:{fontWeight:'bold',color:'#334155',marginTop:13,marginBottom:7},input:{backgroundColor:'#FFF',borderWidth:1,borderColor:'#CBD5E1',borderRadius:9,padding:13},textArea:{backgroundColor:'#FFF',borderWidth:1,borderColor:'#CBD5E1',borderRadius:9,padding:13,minHeight:120,textAlignVertical:'top'},errorInput:{borderColor:'#DC2626'},error:{color:'#DC2626',fontSize:12,marginTop:5},difficultyRow:{flexDirection:'row',flexWrap:'wrap'},difficultyButton:{backgroundColor:'#FFF',borderWidth:1,borderColor:'#CBD5E1',padding:11,borderRadius:8,marginRight:7},selected:{backgroundColor:'#16A34A'},difficultyText:{color:'#475569'},selectedText:{color:'#FFF',fontWeight:'bold'},button:{marginTop:15},notFound:{textAlign:'center',marginTop:50}});
